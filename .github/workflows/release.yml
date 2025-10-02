@@ -28,11 +28,13 @@ jobs:
 
       - name: Get Cargo.toml version
         id: cargo_version
+        shell: pwsh
         run: |
-          $version = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*".*"$' | Select-Object -First 1
-          $v = $version -replace 'version\s*=\s*"(.*)"','$1'
-          echo "VERSION=$v" >> $env:GITHUB_ENV
-          echo "version=$v" >> $env:GITHUB_OUTPUT
+          $regex = '^version\s*=\s*"(.*)"'
+          $match = Select-String -Path Cargo.toml -Pattern $regex | Select-Object -First 1
+          $version = $match.Matches[0].Groups[1].Value
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
@@ -65,11 +67,13 @@ jobs:
 
       - name: Get Cargo.toml version
         id: cargo_version
+        shell: pwsh
         run: |
-          $version = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*".*"$' | Select-Object -First 1
-          $v = $version -replace 'version\s*=\s*"(.*)"','$1'
-          echo "VERSION=$v" >> $env:GITHUB_ENV
-          echo "version=$v" >> $env:GITHUB_OUTPUT
+          $regex = '^version\s*=\s*"(.*)"'
+          $match = Select-String -Path Cargo.toml -Pattern $regex | Select-Object -First 1
+          $version = $match.Matches[0].Groups[1].Value
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
