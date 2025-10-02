@@ -1,0 +1,18 @@
+[package]
+name = "ffui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = { version = "0.22", features = ["glow"] }
+egui = "0.22"
+winreg = "0.50"
+winapi = { version = "0.3", features = ["winuser"] }
+regex = "1.11.3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"
+debug = false
+panic = "abort"
