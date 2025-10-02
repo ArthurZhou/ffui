@@ -1,0 +1,78 @@
+name: Build and Release (Windows)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target: [x86_64-pc-windows-msvc, i686-pc-windows-msvc, aarch64-pc-windows-msvc]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Get Cargo.toml version
+        id: cargo_version
+        run: |
+          $version = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*".*"$' | Select-Object -First 1
+          $v = $version -replace 'version\s*=\s*"(.*)"','$1'
+          echo "VERSION=$v" >> $env:GITHUB_ENV
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        run: |
+          mkdir release
+          copy target/${{ matrix.target }}/release/*.exe release/
+          cd release
+          Compress-Archive -Path *.exe -DestinationPath app-${{ matrix.target }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: release/*.zip
+
+  release:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get Cargo.toml version
+        id: cargo_version
+        run: |
+          $version = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*".*"$' | Select-Object -First 1
+          $v = $version -replace 'version\s*=\s*"(.*)"','$1'
+          echo "VERSION=$v" >> $env:GITHUB_ENV
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.cargo_version.outputs.version }}
+          name: Release v${{ steps.cargo_version.outputs.version }}
+          files: artifacts/*/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
